@@ -1,0 +1,898 @@
+<title>Piso de Producción Innova</title>
+<meta name="description" content="Seguimiento de producción por etapas para las órdenes activas de Innova Sourcing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#EBE9E3; --surface:#FAF9F6; --surface-2:#F1EFEA; --surface-3:#E7E4DD;
+  --ink:#23201B; --ink-2:#585349; --ink-3:#8B857A; --line:#DCD7CE; --line-2:#CBC5B9;
+  --accent:#0E6E68; --accent-ink:#0A524D; --accent-soft:#D6E7E4;
+  --good:#2E7D57; --good-soft:#DBEDE2; --good-ink:#1E5C3E;
+  --warn:#B0761A; --warn-soft:#F3E6C8; --warn-ink:#7E540F;
+  --crit:#B24338; --crit-soft:#F1D8D3; --crit-ink:#872E26;
+  /* etapas — rampa secuencial teal claro->oscuro */
+  --s0:#C9DAD6; --s0t:#2A423F; /* Corte */
+  --s1:#9DC6BF; --s1t:#20403C; /* Bordado */
+  --s2:#5FA79E; --s2t:#0C332F; /* Confección */
+  --s3:#2E857B; --s3t:#F6FBFA; /* Acabados */
+  --s4:#116A63; --s4t:#F6FBFA; /* Empaque */
+  --done:#0A524D; --donet:#EAF4F2; /* Listo */
+  --radius:12px; --radius-s:8px;
+  --shadow:0 1px 2px rgba(30,26,20,.05), 0 6px 20px -12px rgba(30,26,20,.18);
+  --nina:#B5647C; --nina-soft:#F0DEE4; --nino:#3E6E9E; --nino-soft:#DAE5F0;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#161411; --surface:#211E18; --surface-2:#2A261F; --surface-3:#332E26;
+    --ink:#F1ECE3; --ink-2:#BAB3A6; --ink-3:#847E72; --line:#38332B; --line-2:#463F35;
+    --accent:#54B6AC; --accent-ink:#8BD0C8; --accent-soft:#123E39;
+    --good:#5EBF8B; --good-soft:#153A29; --good-ink:#8FD9B4;
+    --warn:#E0A94B; --warn-soft:#3D2F13; --warn-ink:#EFC57E;
+    --crit:#E37F73; --crit-soft:#3D211C; --crit-ink:#F0A99F;
+    --s0:#334A46; --s0t:#CFE0DC; --s1:#3C6560; --s1t:#DCEDEA;
+    --s2:#2E7F77; --s2t:#EAF6F4; --s3:#39938A; --s3t:#08201E;
+    --s4:#57B8AF; --s4t:#07211F; --done:#7CCDC4; --donet:#08201E;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.6);
+    --nina:#D08AA0; --nina-soft:#3A222A; --nino:#7BA6CF; --nino-soft:#1E2E3E;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161411; --surface:#211E18; --surface-2:#2A261F; --surface-3:#332E26;
+  --ink:#F1ECE3; --ink-2:#BAB3A6; --ink-3:#847E72; --line:#38332B; --line-2:#463F35;
+  --accent:#54B6AC; --accent-ink:#8BD0C8; --accent-soft:#123E39;
+  --good:#5EBF8B; --good-soft:#153A29; --good-ink:#8FD9B4;
+  --warn:#E0A94B; --warn-soft:#3D2F13; --warn-ink:#EFC57E;
+  --crit:#E37F73; --crit-soft:#3D211C; --crit-ink:#F0A99F;
+  --s0:#334A46; --s0t:#CFE0DC; --s1:#3C6560; --s1t:#DCEDEA;
+  --s2:#2E7F77; --s2t:#EAF6F4; --s3:#39938A; --s3t:#08201E;
+  --s4:#57B8AF; --s4t:#07211F; --done:#7CCDC4; --donet:#08201E;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.6);
+  --nina:#D08AA0; --nina-soft:#3A222A; --nino:#7BA6CF; --nino-soft:#1E2E3E;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.5; letter-spacing:-.003em;
+}
+.wrap{max-width:1220px; margin:0 auto; padding:22px 22px 80px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif; font-weight:500; text-wrap:balance; margin:0}
+
+/* Topbar */
+.topbar{display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px}
+.brand{display:flex; flex-direction:column; gap:1px}
+.brand .mark{font-family:"Fraunces",serif; font-weight:600; font-size:24px; letter-spacing:-.01em; line-height:1.05}
+.brand .mark b{color:var(--accent); font-weight:600}
+.brand .sub{font-size:12px; color:var(--ink-3); letter-spacing:.02em}
+.spacer{flex:1}
+.demobadge{font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--warn-ink); background:var(--warn-soft); border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);
+  padding:5px 10px; border-radius:999px}
+.tbtn{appearance:none; cursor:pointer; border:1px solid var(--line-2); background:var(--surface);
+  color:var(--ink-2); width:38px; height:38px; border-radius:10px; display:grid; place-items:center}
+.tbtn:hover{border-color:var(--accent); color:var(--accent)}
+.tbtn svg{width:18px; height:18px}
+
+/* KPI strip */
+.kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:26px}
+.kpi{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 15px;
+  display:flex; flex-direction:column; gap:3px; box-shadow:var(--shadow)}
+.kpi .lab{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); font-weight:600}
+.kpi .val{font-family:"Fraunces",serif; font-size:30px; font-weight:500; line-height:1}
+.kpi .foot{font-size:11.5px; color:var(--ink-3)}
+.kpi.alert-crit{border-color:color-mix(in srgb,var(--crit) 45%,var(--line))}
+.kpi.alert-crit .val{color:var(--crit)}
+.kpi.alert-warn{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.kpi.alert-warn .val{color:var(--warn-ink)}
+
+/* Section heading */
+.sechead{display:flex; align-items:baseline; gap:10px; margin:0 2px 12px}
+.sechead h2{font-size:19px}
+.sechead .hint{font-size:12px; color:var(--ink-3)}
+
+/* Order bands */
+.orders{display:flex; flex-direction:column; gap:12px; margin-bottom:30px}
+.order{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+  overflow:hidden; transition:border-color .15s}
+.order.sel{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), var(--shadow)}
+.order-head{display:flex; align-items:center; gap:16px; padding:14px 16px; cursor:pointer; flex-wrap:wrap}
+.order-head:hover{background:var(--surface-2)}
+.oid{display:flex; flex-direction:column; gap:2px; min-width:180px}
+.oid .code{font-family:"Fraunces",serif; font-weight:600; font-size:16px; letter-spacing:-.01em}
+.oid .name{font-size:12px; color:var(--ink-2)}
+.oid .meta{font-size:11px; color:var(--ink-3); margin-top:2px}
+.pipeline{display:flex; align-items:stretch; gap:5px; flex:1; min-width:300px}
+.stage{flex:1; min-width:0; border-radius:var(--radius-s); padding:8px 6px 7px; text-align:center;
+  position:relative; display:flex; flex-direction:column; gap:4px; border:1px solid transparent}
+.stage .sc{font-size:19px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums}
+.stage .sn{font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; font-weight:600; opacity:.85}
+.stage .fill{height:3px; border-radius:2px; background:currentColor; opacity:.32; margin:1px 4px 0}
+.stage.s0{background:var(--s0); color:var(--s0t)} .stage.s1{background:var(--s1); color:var(--s1t)}
+.stage.s2{background:var(--s2); color:var(--s2t)} .stage.s3{background:var(--s3); color:var(--s3t)}
+.stage.s4{background:var(--s4); color:var(--s4t)}
+.stage.empty{opacity:.5}
+.chev{align-self:center; color:var(--ink-3); flex:0 0 auto}
+.chev svg{width:12px; height:12px; display:block}
+.oalerts{display:flex; gap:7px; align-items:center; min-width:150px; justify-content:flex-end; flex-wrap:wrap}
+.donechip{font-size:11px; font-weight:600; color:var(--accent-ink); background:var(--accent-soft);
+  border-radius:999px; padding:4px 9px; white-space:nowrap}
+.chip{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:4px 9px;
+  border-radius:999px; white-space:nowrap; border:1px solid transparent}
+.chip .dot{width:7px; height:7px; border-radius:50%}
+.chip.crit{color:var(--crit-ink); background:var(--crit-soft); border-color:color-mix(in srgb,var(--crit) 30%,transparent)}
+.chip.crit .dot{background:var(--crit)}
+.chip.warn{color:var(--warn-ink); background:var(--warn-soft); border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.warn .dot{background:var(--warn)}
+.chip.ok{color:var(--good-ink); background:var(--good-soft); border-color:color-mix(in srgb,var(--good) 28%,transparent)}
+.chip.ok .dot{background:var(--good)}
+.expand{color:var(--ink-3); transition:transform .15s; flex:0 0 auto}
+.order.sel .expand{transform:rotate(180deg); color:var(--accent)}
+
+/* Detail */
+.detail{border-top:1px solid var(--line); padding:16px; background:var(--surface-2); display:none}
+.order.sel .detail{display:block}
+.dtop{display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; margin-bottom:14px}
+.filters{display:flex; gap:8px; flex-wrap:wrap; align-items:center; flex:1}
+.filters .fld{display:flex; flex-direction:column; gap:3px}
+.filters label{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600}
+select,input[type=search]{font-family:inherit; font-size:13px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:8px; padding:7px 9px; min-width:130px}
+input[type=search]{min-width:170px}
+select:focus,input:focus,button:focus-visible,.order-head:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--ink-2); margin:2px 2px 12px; align-items:center}
+.legend .lg{display:inline-flex; align-items:center; gap:5px}
+.legend .sw{width:12px; height:12px; border-radius:3px; display:inline-block}
+
+.tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:1240px}
+thead th{position:sticky; top:0; background:var(--surface-3); text-align:left; font-size:10.5px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--ink-2); font-weight:600; padding:9px 10px; border-bottom:1px solid var(--line-2); white-space:nowrap}
+tbody td{padding:8px 10px; border-bottom:1px solid var(--line); font-size:13px; vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{position:relative}
+tbody tr.blocked td:first-child{box-shadow:inset 3px 0 0 var(--crit)}
+tbody tr.risk td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+tbody tr:hover td{background:var(--surface-2)}
+.code-c{font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
+.muted{color:var(--ink-2)}
+.gchip{font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:999px; white-space:nowrap}
+.gchip.nina{color:var(--nina); background:var(--nina-soft)}
+.gchip.nino{color:var(--nino); background:var(--nino-soft)}
+.resp{font-weight:500; white-space:nowrap}
+.noassign{font-size:12px; font-weight:600; color:var(--warn-ink); background:var(--warn-soft); padding:2px 8px; border-radius:999px; white-space:nowrap;
+  border:1px solid color-mix(in srgb,var(--warn) 25%,transparent)}
+.provbtn{padding:8px 12px; white-space:nowrap; font-weight:600}
+.svctag{display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; margin:2px 4px 0 0}
+.svctag.s0{background:var(--s0); color:var(--s0t)} .svctag.s1{background:var(--s1); color:var(--s1t)}
+.svctag.s2{background:var(--s2); color:var(--s2t)} .svctag.s3{background:var(--s3); color:var(--s3t)} .svctag.s4{background:var(--s4); color:var(--s4t)}
+.svcs{margin-top:3px}
+.provlist{max-height:250px}
+.provlist li{align-items:center}
+.provadd{border-top:1px solid var(--line); margin-top:8px; padding-top:14px; display:flex; flex-direction:column; gap:9px}
+.provadd input[type=text]{width:100%; font-family:inherit; font-size:14px; padding:9px 10px; border:1px solid var(--line-2); border-radius:9px; background:var(--surface-2); color:var(--ink)}
+.svcpick{display:flex; flex-wrap:wrap; gap:6px 14px}
+.svcopt{display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink-2); cursor:pointer}
+.chkcol{width:36px; text-align:center}
+.chkcol input{width:16px; height:16px; cursor:pointer; accent-color:var(--accent)}
+.bulkbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 32%,transparent); border-radius:10px; padding:9px 12px; margin-bottom:10px}
+.bulkbar .bulkn{font-weight:700; color:var(--accent-ink); margin-right:2px}
+.bulkbar .mbtn{padding:7px 12px; font-size:12.5px}
+.talla{font-weight:600; font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap}
+.qty{font-variant-numeric:tabular-nums; text-align:right; font-weight:500}
+
+.spill{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:4px 10px;
+  border-radius:999px; white-space:nowrap}
+.spill.s0{background:var(--s0); color:var(--s0t)} .spill.s1{background:var(--s1); color:var(--s1t)}
+.spill.s2{background:var(--s2); color:var(--s2t)} .spill.s3{background:var(--s3); color:var(--s3t)}
+.spill.s4{background:var(--s4); color:var(--s4t)} .spill.done{background:var(--done); color:var(--donet)}
+.dias{font-variant-numeric:tabular-nums; white-space:nowrap}
+.dias .d{font-weight:600} .dias .u{color:var(--ink-3); font-size:11px}
+.estado .chip{font-size:11px; padding:3px 8px}
+
+.acts{display:flex; gap:5px; white-space:nowrap}
+.abtn{appearance:none; cursor:pointer; font-family:inherit; font-size:11.5px; font-weight:600; border-radius:7px;
+  padding:5px 9px; border:1px solid var(--line-2); background:var(--surface); color:var(--ink-2); display:inline-flex; align-items:center; gap:4px}
+.abtn:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+.abtn.prim{background:var(--accent); border-color:var(--accent); color:#fff}
+.abtn.prim:hover{background:var(--accent-ink); border-color:var(--accent-ink); color:#fff}
+.abtn.danger:hover{border-color:var(--crit); color:var(--crit); background:var(--crit-soft)}
+.abtn.on{border-color:var(--crit); color:var(--crit-ink); background:var(--crit-soft)}
+.abtn svg{width:13px; height:13px}
+.tfoot{padding:9px 12px; font-size:12px; color:var(--ink-3); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px}
+
+/* Bloqueos historial */
+.blkpanel{margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+.blkpanel .bh{display:flex; align-items:center; gap:8px; padding:11px 14px; border-bottom:1px solid var(--line); background:var(--surface-3)}
+.blkpanel .bh h3{font-size:14px; font-family:"IBM Plex Sans",sans-serif; font-weight:700; letter-spacing:.01em}
+.blkpanel .bh .n{font-size:11px; color:var(--ink-3); font-weight:600}
+.blklist{list-style:none; margin:0; padding:4px 0; max-height:230px; overflow-y:auto}
+.blklist li{padding:9px 14px; border-bottom:1px solid var(--line); display:flex; gap:11px; align-items:flex-start; font-size:12.5px}
+.blklist li:last-child{border-bottom:none}
+.blklist .bicon{flex:0 0 auto; width:8px; height:8px; border-radius:50%; margin-top:5px; background:var(--crit)}
+.blklist li.res .bicon{background:var(--good)}
+.blklist .binfo{flex:1; min-width:0}
+.blklist .bitem{font-weight:600}
+.blklist .bnote{color:var(--ink-2); margin-top:1px}
+.blklist .bmeta{color:var(--ink-3); font-size:11px; margin-top:2px}
+.blklist .bstat{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; flex:0 0 auto}
+.blklist .bstat.act{color:var(--crit)} .blklist .bstat.res{color:var(--good)}
+.blkempty{padding:20px 14px; color:var(--ink-3); font-size:13px; text-align:center}
+
+.order2note{padding:14px 16px; color:var(--ink-2); font-size:13px; background:var(--surface); border:1px dashed var(--line-2); border-radius:var(--radius)}
+
+/* Modal */
+.scrim{position:fixed; inset:0; background:rgba(20,17,13,.5); backdrop-filter:blur(2px); display:none; place-items:center; z-index:50; padding:20px}
+.scrim.on{display:grid}
+.modal{background:var(--surface); border:1px solid var(--line-2); border-radius:14px; box-shadow:var(--shadow);
+  width:min(460px,100%); padding:20px; animation:pop .16s ease-out}
+@keyframes pop{from{transform:scale(.97); opacity:.6} to{transform:scale(1); opacity:1}}
+.modal h3{font-size:17px; margin-bottom:4px}
+.modal .msub{font-size:12.5px; color:var(--ink-2); margin-bottom:14px}
+.modal label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:600; margin-bottom:5px}
+.modal textarea,.modal input[type=number]{width:100%; font-family:inherit; font-size:14px; color:var(--ink);
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:9px; padding:10px; resize:vertical}
+.modal textarea{min-height:80px}
+.mrow{display:flex; gap:12px; align-items:center}
+.mrow .fld{flex:1}
+.mactions{display:flex; gap:9px; justify-content:flex-end; margin-top:18px}
+.mbtn{appearance:none; cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:600; border-radius:9px; padding:9px 16px; border:1px solid var(--line-2); background:var(--surface); color:var(--ink-2)}
+.mbtn.prim{background:var(--accent); border-color:var(--accent); color:#fff}
+.mbtn.prim:hover{background:var(--accent-ink)}
+.mbtn.dgr{background:var(--crit); border-color:var(--crit); color:#fff}
+.mbtn:hover{border-color:var(--accent)}
+.splitprev{font-size:12.5px; color:var(--ink-2); background:var(--surface-2); border-radius:8px; padding:9px 11px; margin-top:10px; line-height:1.6}
+.footnote{margin-top:28px; font-size:11.5px; color:var(--ink-3); text-align:center; line-height:1.6}
+
+@media (max-width:820px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .order-head{align-items:flex-start}
+  .pipeline{order:3; flex-basis:100%}
+  .oalerts{justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark"><b>Innova</b> · Piso de Producción</div>
+      <div class="sub">Orden ASAU · F/W 2026 · sistema propio, aparte de Irlanda / Reino Unido</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="demobadge" style="color:var(--good-ink);background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 30%,transparent)">En vivo · Supabase</span>
+    <button class="tbtn" id="themeBtn" aria-label="Cambiar tema" title="Cambiar tema">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"></path></svg>
+    </button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="sechead">
+    <h2>Orden en producción — ASAU</h2>
+    <span class="hint">Clic en la orden para ver el detalle por item, talla y responsable</span>
+  </div>
+  <div class="orders" id="orders"></div>
+
+  <div class="footnote">
+    Orden UKFWAM-1026 (ASAU) · Sistema propio, aparte de Irlanda/Reino Unido · Sin guías: etapas, responsable y fechas por servicio se registran manualmente ·
+    Los cambios se guardan en Supabase en tiempo real.
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;color:#fff;padding:11px 18px;border-radius:10px;font-weight:600;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 10px 30px -8px rgba(0,0,0,.45)"></div>
+<div class="scrim" id="scrim">
+  <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ===== Conexión a Supabase (tablas asau_, aparte de IR/UK) =====
+const SB_URL="https://rtnvpriddrizwelgxxcl.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0bnZwcmlkZHJpendlbGd4eGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NTQxNDksImV4cCI6MjA5NTMzMDE0OX0.fTodjktkbane5Vk-U7vg3XToXTsNZCeCk7bfCj-X31I";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const ORDER_CODE="UKFWAM-1026";
+
+const STAGES=["Corte","Bordado","Confección","Acabados","Empaque"];
+const SIZE_ORDER=["O/S","NB","1M","3M","6M","9M","12M"];
+const LEAD=[3,10,10,4,2];
+const REASONS=["Falta de material","Máquina / equipo","Personal / mano de obra","Calidad / reproceso","Proveedor externo","Otro"];
+const OUTSOURCED=[1,2];
+function isOut(s){ return OUTSOURCED.includes(s); }
+function isoDay(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+const TODAY=new Date();
+const todayStr=isoDay(TODAY);
+function fmtDate(v){ if(!v) return ''; let d; if(v instanceof Date) d=v; else if(/T/.test(v)) d=new Date(v); else d=new Date(v+'T12:00:00'); return isNaN(d)?'':d.toLocaleDateString('es-PE',{day:'2-digit',month:'short'}); }
+
+let PROVIDERS=[]; let ITEMS=[]; let BLOCKS=[]; let ORDER=null; let SELIDS=new Set();
+function rosterFor(s){ return PROVIDERS.filter(p=>(p.services||[]).includes(s)).map(p=>p.name); }
+function allPeople(){ return PROVIDERS.map(p=>p.name); }
+
+function toast(msg,isErr){ const t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.style.background=isErr?'var(--crit)':'var(--accent)'; t.style.opacity='1'; clearTimeout(t._t); t._t=setTimeout(()=>{t.style.opacity='0';},3800); }
+
+async function reloadProviders(){ const {data,error}=await sb.from('asau_providers').select('*').order('name'); if(!error) PROVIDERS=(data||[]).map(p=>({id:p.id,name:p.name,services:p.services||[]})); }
+
+async function loadAll(){
+  const [ordR,itR,prR,blR]=await Promise.all([
+    sb.from('asau_orders').select('*').eq('code',ORDER_CODE).maybeSingle(),
+    sb.from('asau_items').select('*, asau_products(code,collection,garment,tela,color,genero,shipment)').order('created_at'),
+    sb.from('asau_providers').select('*').order('name'),
+    sb.from('asau_blocks').select('*').order('created_at',{ascending:false})
+  ]);
+  const err=ordR.error||itR.error||prR.error||blR.error; if(err) throw err;
+  ORDER=ordR.data;
+  PROVIDERS=(prR.data||[]).map(p=>({id:p.id,name:p.name,services:p.services||[]}));
+  BLOCKS=blR.data||[];
+  const activeByItem={};
+  BLOCKS.forEach(b=>{ if(!b.resolved_at && !activeByItem[b.item_id]) activeByItem[b.item_id]=b; });
+  ITEMS=(itR.data||[]).map(r=>{ const p=r.asau_products||{}; const ab=activeByItem[r.id];
+    return { id:r.id, order_id:r.order_id, product_id:r.product_id,
+      code:p.code, collection:p.collection, garment:p.garment, tela:p.tela, color:p.color, genero:p.genero, ship:p.shipment,
+      size:r.size, qty:r.qty, stage:r.stage, assignees:r.assignees||{}, dates:r.dates||{}, is_split:r.is_split, _split:r.is_split,
+      block: ab? {id:ab.id, reason:ab.reason, note:ab.note, at:ab.created_at, resolvedAt:ab.resolved_at} : null };
+  });
+}
+
+async function persist(it, patch, applyLocal){
+  patch.updated_at=new Date().toISOString();
+  const {error}=await sb.from('asau_items').update(patch).eq('id',it.id);
+  if(error){ toast('No se pudo guardar: '+error.message, true); return false; }
+  if(applyLocal) applyLocal(); return true;
+}
+
+// ===== estado (basado en fechas) =====
+function curDates(it){ return it.stage<5? (it.dates[it.stage]||null):null; }
+function isLate(it){ const d=curDates(it); return !!(d && d.estimado && !d.real && d.estimado < todayStr); }
+function diasAtraso(it){ const d=curDates(it); if(!d||!d.estimado) return 0; return Math.max(0, Math.round((new Date(todayStr+'T12:00:00')-new Date(d.estimado+'T12:00:00'))/86400000)); }
+function sinFecha(it){ const d=curDates(it); return it.stage<5 && (!d||!d.estimado); }
+function estado(it){ if(it.block && !it.block.resolvedAt) return "blocked"; if(it.stage>=5) return "done"; if(isLate(it)) return "late"; return "ok"; }
+
+// ===== Órdenes =====
+const ORDERS=[
+  {id:"ukf", code:"UKFWAM-1026", name:"ASAU · Autumn/Winter 2026", client:"ASAU",
+   embarques:"Emb. 1: 2da qna. Octubre · Emb. 2: 2da qna. Noviembre", primary:true}
+];
+let SEL="ukf";
+
+function orderItems(oid){ return oid==="ukf"? ITEMS : []; }
+function pipelineCounts(items){ const c=[0,0,0,0,0]; let done=0; items.forEach(it=>{ if(it.stage>=5) done++; else c[it.stage]+=1; }); return {c,done}; }
+function countPieces(items){ return items.reduce((a,b)=>a+b.qty,0); }
+
+// ===== Render KPIs =====
+function renderKPIs(){
+  const items=ITEMS;
+  const late=items.filter(it=>estado(it)==="late").length;
+  const blk=items.filter(it=>estado(it)==="blocked").length;
+  const listo=items.filter(it=>it.stage>=5).length;
+  const proc=items.filter(it=>it.stage<5).length;
+  const pzs=countPieces(items);
+  const kpis=[
+    {lab:"Piezas en la orden", val:pzs.toLocaleString("es-PE"), foot:"UKFWAM-1026 · 18 colecciones"},
+    {lab:"Items en proceso", val:proc, foot:"por talla · aún no empacados"},
+    {lab:"Items bloqueados", val:blk, foot:"requieren decisión", cls:"alert-crit"},
+    {lab:"Items atrasados", val:late, foot:"pasaron su fecha estimada", cls:"alert-warn"},
+    {lab:"Listos para embarque", val:listo, foot:"post-empaque"},
+  ];
+  document.getElementById("kpis").innerHTML = kpis.map(k=>`
+    <div class="kpi ${k.cls||""}">
+      <span class="lab">${k.lab}</span>
+      <span class="val num">${k.val}</span>
+      <span class="foot">${k.foot}</span>
+    </div>`).join("");
+}
+
+const chev='<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>';
+
+function pipelineHTML(counts, maxv){
+  return counts.c.map((n,i)=>{
+    const w = maxv? Math.max(6, Math.round(n/maxv*100)) : 0;
+    return `${i>0?chev:""}<div class="stage s${i} ${n===0?'empty':''}">
+      <span class="sc num">${n}</span><span class="sn">${STAGES[i]}</span>
+      <span class="fill" style="width:${w}%; margin-left:auto; margin-right:auto"></span></div>`;
+  }).join("");
+}
+
+function alertsHTML(late,blk,done){
+  let h="";
+  if(blk>0) h+=`<span class="chip crit"><span class="dot"></span>${blk} bloq.</span>`;
+  if(late>0) h+=`<span class="chip warn"><span class="dot"></span>${late} atrasados</span>`;
+  if(blk===0&&late===0) h+=`<span class="chip ok"><span class="dot"></span>en fecha</span>`;
+  if(done>0) h+=`<span class="donechip num">${done} listos</span>`;
+  return h;
+}
+
+function renderOrders(){
+  const host=document.getElementById("orders");
+  host.innerHTML = ORDERS.map(o=>{
+    let counts, done, risk, blk, pzs, itemsN;
+    if(o.primary){
+      const it=orderItems(o.id); const pc=pipelineCounts(it);
+      counts={c:pc.c}; done=pc.done;
+      risk=it.filter(x=>estado(x)==="late").length; blk=it.filter(x=>estado(x)==="blocked").length;
+      pzs=countPieces(it); itemsN=it.length;
+    } else {
+      counts={c:o.summary}; done=o.done; risk=o.risk; blk=o.blocked;
+      pzs=o.summary.reduce((a,b)=>a+b,0)+o.done; itemsN="—";
+    }
+    const maxv=Math.max(...counts.c,1);
+    const sel = SEL===o.id? "sel":"";
+    return `<div class="order ${sel}" data-o="${o.id}">
+      <div class="order-head" tabindex="0" role="button" aria-expanded="${SEL===o.id}" data-toggle="${o.id}">
+        <div class="oid">
+          <span class="code">${o.code}</span>
+          <span class="name">${o.name}</span>
+          <span class="meta">${o.embarques}${o.overdue?' · <b style="color:var(--crit)">embarques vencidos</b>':''}</span>
+        </div>
+        <div class="pipeline">${pipelineHTML(counts,maxv)}</div>
+        <div class="oalerts">${alertsHTML(risk,blk,done)}
+          <span class="expand"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </div>
+      </div>
+      <div class="detail">${o.primary? detailHTML() : order2HTML(o)}</div>
+    </div>`;
+  }).join("");
+  bindOrderEvents();
+  if(SEL==="ukf") { renderTable(); renderBlocks(); }
+}
+
+function order2HTML(o){
+  return `<div class="order2note">Esta es una orden anterior que está cerrando (embarques a Irlanda y Reino Unido, ya vencidos en calendario).
+    En el sistema real tendría el mismo detalle por item y talla que la UKFWAM-1026. Para este demo, el foco está en la orden en curso —
+    selecciónala arriba para ver el detalle completo.</div>`;
+}
+
+// ===== filtros =====
+const F={etapa:"",col:"",gen:"",tela:"",prenda:"",color:"",est:"",resp:"",q:""};
+function detailHTML(){
+  const it=ITEMS;
+  const cols=[...new Set(it.map(x=>x.collection))].sort();
+  const telas=[...new Set(it.map(x=>x.tela))].sort();
+  const garments=[...new Set(it.map(x=>x.garment))].sort();
+  const colors=[...new Set(it.map(x=>x.color))].sort();
+  const people=allPeople();
+  return `
+  <div class="dtop">
+    <div class="filters">
+      <div class="fld"><label>Etapa</label><select id="fstage"><option value="">Todas</option>${STAGES.map((s,i)=>`<option value="${i}">${s}</option>`).join("")}<option value="done">Listos</option></select></div>
+      <div class="fld"><label>Colección</label><select id="fcol"><option value="">Todas (${cols.length})</option>${cols.map(c=>`<option>${c}</option>`).join("")}</select></div>
+      <div class="fld"><label>Género</label><select id="fgen"><option value="">Ambos</option><option>NIÑA</option><option>NIÑO</option></select></div>
+      <div class="fld"><label>Tela</label><select id="ftela"><option value="">Todas</option>${telas.map(t=>`<option>${t}</option>`).join("")}</select></div>
+      <div class="fld"><label>Prenda</label><select id="fprenda"><option value="">Todas</option>${garments.map(g=>`<option>${g}</option>`).join("")}</select></div>
+      <div class="fld"><label>Color</label><select id="fcolor"><option value="">Todos</option>${colors.map(cl=>`<option>${cl}</option>`).join("")}</select></div>
+      <div class="fld"><label>Estado</label><select id="fest"><option value="">Todos</option><option value="blocked">Bloqueados</option><option value="late">Atrasados</option><option value="ok">En fecha</option><option value="done">Listos</option></select></div>
+      <div class="fld"><label>Responsable</label><select id="fresp"><option value="">Todos</option>${people.map(p=>`<option>${p}</option>`).join("")}<option value="__none__">— sin asignar</option></select></div>
+      <div class="fld"><label>Buscar código</label><input type="search" id="fq" placeholder="ej. 383-01"></div>
+    </div>
+    <div class="fld" style="align-self:flex-end"><button class="abtn provbtn" id="provBtn">＋ Proveedores</button></div>
+  </div>
+  <div class="legend">
+    <span class="lg"><b style="color:var(--ink-2)">Etapas:</b></span>
+    <span class="lg"><span class="sw" style="background:var(--s0)"></span>Corte</span>
+    <span class="lg"><span class="sw" style="background:var(--s1)"></span>Bordado</span>
+    <span class="lg"><span class="sw" style="background:var(--s2)"></span>Confección</span>
+    <span class="lg"><span class="sw" style="background:var(--s3)"></span>Acabados</span>
+    <span class="lg"><span class="sw" style="background:var(--s4)"></span>Empaque</span>
+    <span class="lg" style="margin-left:8px"><span class="sw" style="background:var(--crit)"></span>Bloqueado</span>
+    <span class="lg"><span class="sw" style="background:var(--warn)"></span>Atrasado (pasó su fecha estimada)</span>
+  </div>
+  <div id="bulkbar" class="bulkbar" hidden></div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th class="chkcol"><input type="checkbox" id="selall" title="Seleccionar todos los filtrados"></th>
+        <th>Código</th><th>Colección</th><th>Prenda</th><th>Tela / Color</th><th>Gén</th>
+        <th style="text-align:center">Talla</th><th style="text-align:right">Cant</th>
+        <th>Etapa actual</th><th>Responsable</th><th>Salida / inicio</th><th>Retorno / fin est.</th><th>Estado</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="tfoot"><span id="tcount"></span><span>Los cambios se guardan en Supabase</span></div>
+  </div>`;
+}
+
+function filtered(){
+  return ITEMS.filter(it=>{
+    if(F.etapa!==""){ if(F.etapa==="done"){ if(it.stage<5) return false; } else if(it.stage!==+F.etapa) return false; }
+    if(F.col && it.collection!==F.col) return false;
+    if(F.gen && it.genero!==F.gen) return false;
+    if(F.tela && it.tela!==F.tela) return false;
+    if(F.prenda && it.garment!==F.prenda) return false;
+    if(F.color && it.color!==F.color) return false;
+    if(F.est && estado(it)!==F.est) return false;
+    if(F.resp){
+      const cur = it.stage>=5? null : it.assignees[it.stage];
+      if(F.resp==="__none__"){ if(!(it.stage<5 && !cur)) return false; }
+      else if(cur!==F.resp) return false;
+    }
+    if(F.q && !it.code.toLowerCase().includes(F.q.toLowerCase())) return false;
+    return true;
+  }).sort((a,b)=>{
+    const rank={blocked:0,late:1,ok:2,done:3};
+    const ea=rank[estado(a)], eb=rank[estado(b)];
+    if(ea!==eb) return ea-eb;
+    return a.code.localeCompare(b.code) || SIZE_ORDER.indexOf(a.size)-SIZE_ORDER.indexOf(b.size);
+  });
+}
+
+const icoAdv='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const icoSplit='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a3 3 0 0 0 3 3h9M18 8l3 3-3 3M6 21v-6"/></svg>';
+const icoBlock='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
+
+function estadoCell(it){
+  const e=estado(it);
+  if(e==="blocked") return `<span class="chip crit"><span class="dot"></span>Bloqueado</span>`;
+  if(e==="late"){ const d=diasAtraso(it); return `<span class="chip warn"><span class="dot"></span>Atrasado${d>0?` · ${d}d`:''}</span>`; }
+  if(e==="done") return `<span class="chip ok"><span class="dot"></span>Listo</span>`;
+  return `<span class="chip ok"><span class="dot"></span>En fecha</span>`;
+}
+function salidaCell(it){
+  if(it.stage>=5) return `<span class="muted">—</span>`;
+  const d=curDates(it); return `<span class="num muted">${d&&d.salida?fmtDate(d.salida):'—'}</span>`;
+}
+function estCell(it){
+  if(it.stage>=5) return `<span class="muted">—</span>`;
+  const d=curDates(it);
+  if(!d||!d.estimado) return `<span class="noassign">— sin fecha</span>`;
+  const over = !d.real && d.estimado < todayStr;
+  return `<span class="num" style="${over?'color:var(--warn-ink);font-weight:600':''}">${fmtDate(d.estimado)}</span>`;
+}
+function etapaCell(it){
+  if(it.stage>=5) return `<span class="spill done">Listo p/ embarque</span>`;
+  return `<span class="spill s${it.stage}">${STAGES[it.stage]}</span>`;
+}
+function trail(it){
+  const t=[]; const top=Math.min(it.stage,4);
+  for(let s=0;s<=top;s++){ if(it.assignees[s]!==undefined) t.push(`${STAGES[s]}: ${it.assignees[s]||'sin asignar'}`); }
+  return t.join(" · ");
+}
+function respCell(it){
+  if(it.stage>=5) return `<span class="muted">—</span>`;
+  const r=it.assignees[it.stage];
+  const tt=trail(it);
+  if(!r) return `<span class="noassign" title="${tt}">— asignar</span>`;
+  return `<span class="resp" title="${tt}">${r}</span>`;
+}
+
+function renderTable(){
+  const rows=filtered();
+  const tb=document.getElementById("tbody"); if(!tb) return;
+  tb.innerHTML = rows.map(it=>{
+    const e=estado(it);
+    const trcls = e==="blocked"?"blocked": e==="late"?"risk":"";
+    const advDisabled = it.stage>=5;
+    const isBlk = it.block && !it.block.resolvedAt;
+    return `<tr class="${trcls}" data-id="${it.id}">
+      <td class="chkcol"><input type="checkbox" class="rowchk" data-id="${it.id}" ${SELIDS.has(it.id)?'checked':''}></td>
+      <td class="code-c">${it.code}${it._split?' <span title="ítem parcial" style="color:var(--accent);font-weight:700">◑</span>':''}</td>
+      <td class="muted">${it.collection}</td>
+      <td>${it.garment}</td>
+      <td class="muted">${it.tela} · ${it.color}</td>
+      <td><span class="gchip ${it.genero==='NIÑA'?'nina':'nino'}">${it.genero==='NIÑA'?'Niña':'Niño'}</span></td>
+      <td class="talla">${it.size}</td>
+      <td class="qty num">${it.qty}</td>
+      <td>${etapaCell(it)}</td>
+      <td>${respCell(it)}</td>
+      <td class="dias">${salidaCell(it)}</td>
+      <td class="dias">${estCell(it)}</td>
+      <td class="estado">${estadoCell(it)}</td>
+      <td><div class="acts">
+        <button class="abtn prim" data-act="adv" ${advDisabled?'disabled style="opacity:.4;cursor:default"':''} title="Avanzar a la siguiente etapa">${icoAdv}</button>
+        <button class="abtn" data-act="split" title="Partir (parcial)" ${it.qty<2||it.stage>=5?'disabled style="opacity:.4;cursor:default"':''}>${icoSplit}</button>
+        <button class="abtn ${isBlk?'on':'danger'}" data-act="block" title="${isBlk?'Ver / resolver bloqueo':'Registrar bloqueo'}">${icoBlock}</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+  document.getElementById("tcount").textContent = `${rows.length} items · ${rows.reduce((a,b)=>a+b.qty,0)} piezas`;
+  tb.querySelectorAll(".rowchk").forEach(ch=>ch.addEventListener("change",e=>{
+    const id=e.target.dataset.id; if(e.target.checked) SELIDS.add(id); else SELIDS.delete(id);
+    const sa=document.getElementById("selall"); if(sa) sa.checked = rows.length>0 && rows.every(r=>SELIDS.has(r.id));
+    renderBulkBar();
+  }));
+  const selall=document.getElementById("selall");
+  if(selall){ selall.checked = rows.length>0 && rows.every(r=>SELIDS.has(r.id));
+    selall.onchange=e=>{ if(e.target.checked) rows.forEach(r=>SELIDS.add(r.id)); else rows.forEach(r=>SELIDS.delete(r.id)); renderTable(); }; }
+  renderBulkBar();
+  tb.querySelectorAll("button[data-act]").forEach(b=>{
+    b.addEventListener("click",e=>{
+      const id=e.target.closest("tr").dataset.id; const act=b.dataset.act;
+      const it=ITEMS.find(x=>x.id===id);
+      if(act==="adv") openAdvance(it);
+      if(act==="split") openSplit(it);
+      if(act==="block") openBlock(it);
+    });
+  });
+}
+
+function isoDay(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function openAdvance(it){
+  if(it.stage>=5) return;
+  const ns=it.stage+1;
+  const toListo = ns>4;
+  const next = toListo? "Listo p/ embarque" : STAGES[ns];
+  const opts = toListo? [] : rosterFor(ns);
+  const est=new Date(TODAY); if(!toListo) est.setDate(est.getDate()+LEAD[ns]);
+  modal.innerHTML=`
+    <h3>Avanzar item</h3>
+    <div class="msub">${it.code} · Talla ${it.size} · <b>${STAGES[it.stage]}</b> → <b>${next}</b>
+      <br><span class="muted">Se registra ${isOut(it.stage)?'el retorno real':'el fin'} de ${STAGES[it.stage]} hoy (${fmtDate(TODAY)}).</span></div>
+    ${toListo? `<div class="splitprev">El item completó todas las etapas y queda <b>listo para embarque</b>.</div>`
+      : `<label for="mresp">¿Quién hace ${next}?</label>
+         <select id="mresp"><option value="">— dejar sin asignar por ahora</option>${opts.map(p=>`<option>${p}</option>`).join("")}</select>
+         <div class="mrow" style="margin-top:12px">
+           <div class="fld"><label>${isOut(ns)?'Fecha de salida real':'Fecha de inicio'}</label><input type="date" id="msal" value="${isoDay(TODAY)}"></div>
+           <div class="fld"><label>${isOut(ns)?'Retorno estimado':'Fin estimado'}</label><input type="date" id="mest" value="${isoDay(est)}"></div>
+         </div>`}
+    <div class="mactions">
+      <button class="mbtn" data-m="cancel">Cancelar</button>
+      <button class="mbtn prim" data-m="ok">Confirmar</button>
+    </div>`;
+  scrim.classList.add("on");
+  const sel=modal.querySelector("#mresp"); if(sel) sel.focus();
+  modal.querySelector('[data-m="cancel"]').onclick=closeModal;
+  modal.querySelector('[data-m="ok"]').onclick=async ()=>{
+    const nd={...it.dates}; const na={...it.assignees};
+    nd[it.stage]={ ...(nd[it.stage]||{salida:null,estimado:null}), real: todayStr };  // retorno/fin real de la etapa que cierra
+    if(!toListo){
+      na[ns]=(sel && sel.value)||null;
+      const sv=modal.querySelector("#msal").value, ev=modal.querySelector("#mest").value;
+      nd[ns]={ salida: sv||todayStr, estimado: ev||null, real:null };
+    }
+    if(await persist(it,{stage:ns,assignees:na,dates:nd},()=>{it.stage=ns;it.assignees=na;it.dates=nd;})){ toast("Guardado"); }
+    closeModal(); refresh();
+  };
+}
+
+function refresh(){ renderKPIs(); renderOrders(); }
+
+// ===== Bloqueos historial =====
+function renderBlocks(){
+  const host=document.querySelector('.order[data-o="ukf"] .detail');
+  if(!host) return;
+  let panel=host.querySelector(".blkpanel");
+  const byId={}; ITEMS.forEach(it=>byId[it.id]=it);
+  const rows=BLOCKS.map(b=>({b, it:byId[b.item_id]})).filter(x=>x.it)
+    .sort((a,b)=> (a.b.resolved_at?1:0)-(b.b.resolved_at?1:0) || (new Date(b.b.created_at)-new Date(a.b.created_at)));
+  const act=rows.filter(x=>!x.b.resolved_at).length;
+  const html=`
+    <div class="bh"><h3>Historial de bloqueos</h3><span class="n">${act} activo${act!==1?'s':''} · ${rows.length} en total</span></div>
+    ${rows.length? `<ul class="blklist">${rows.map(({it,b})=>`
+      <li class="${b.resolved_at?'res':''}">
+        <span class="bicon"></span>
+        <div class="binfo">
+          <div class="bitem">${it.code} · ${it.garment} · ${it.tela}/${it.color} · Talla ${it.size} <span class="muted">(${it.collection})</span></div>
+          <div class="bnote"><b>${b.reason||'—'}:</b> ${b.note||''}</div>
+          <div class="bmeta">Registrado ${fmtDate(b.created_at)}${b.resolved_at?` · resuelto ${fmtDate(b.resolved_at)}`:` · en etapa ${STAGES[Math.min(it.stage,4)]}`}</div>
+        </div>
+        <span class="bstat ${b.resolved_at?'res':'act'}">${b.resolved_at?'Resuelto':'Activo'}</span>
+      </li>`).join("")}</ul>`
+    : `<div class="blkempty">Sin bloqueos registrados.</div>`}`;
+  if(!panel){ panel=document.createElement("div"); panel.className="blkpanel"; host.appendChild(panel); }
+  panel.innerHTML=html;
+}
+
+// ===== Modales =====
+const scrim=document.getElementById("scrim"), modal=document.getElementById("modal");
+function closeModal(){ scrim.classList.remove("on"); modal.innerHTML=""; }
+scrim.addEventListener("click",e=>{ if(e.target===scrim) closeModal(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
+
+function openBlock(it){
+  const isBlk = it.block && !it.block.resolvedAt;
+  modal.innerHTML = `
+    <h3>${isBlk?'Bloqueo activo':'Registrar bloqueo'}</h3>
+    <div class="msub">${it.code} · ${it.garment} · ${it.tela}/${it.color} · Talla ${it.size} · <span class="muted">${it.collection}</span></div>
+    ${isBlk? `<div class="splitprev"><b>Motivo:</b> ${it.block.reason||'—'}<br><b>Detalle:</b> ${it.block.note}<br><span class="muted">Registrado ${fmtDate(it.block.at)} · en ${STAGES[Math.min(it.stage,4)]}</span></div>`
+      : `<label for="breason">Motivo (categoría)</label>
+         <select id="breason">${REASONS.map(r=>`<option>${r}</option>`).join("")}</select>
+         <label for="bnote" style="margin-top:12px">Detalle</label>
+         <textarea id="bnote" placeholder="Ej. Falta hilo tono ivory, proveedor entrega el jueves…"></textarea>`}
+    <div class="mactions">
+      <button class="mbtn" data-m="cancel">Cerrar</button>
+      ${isBlk? `<button class="mbtn prim" data-m="resolve">Marcar resuelto</button>`
+             : `<button class="mbtn dgr" data-m="save">Registrar bloqueo</button>`}
+    </div>`;
+  scrim.classList.add("on");
+  modal.querySelector('[data-m="cancel"]').onclick=closeModal;
+  if(isBlk){ modal.querySelector('[data-m="resolve"]').onclick=async ()=>{ const {error}=await sb.from('asau_blocks').update({resolved_at:new Date().toISOString()}).eq('id',it.block.id); if(error){toast('No se pudo resolver: '+error.message,true);return;} closeModal(); await loadAll(); refresh(); toast("Bloqueo resuelto"); }; }
+  else{
+    const ta=modal.querySelector("#bnote"); ta.focus();
+    modal.querySelector('[data-m="save"]').onclick=async ()=>{
+      const reason=modal.querySelector("#breason").value;
+      const note=ta.value.trim()||"(sin detalle)";
+      const ins=await sb.from('asau_blocks').insert({item_id:it.id, stage:it.stage, reason, note}).select();
+      if(ins.error){ toast('No se pudo registrar: '+ins.error.message,true); return; }
+      closeModal(); await loadAll(); refresh(); toast("Bloqueo registrado");
+    };
+  }
+}
+
+function openSplit(it){
+  let mv=Math.max(1,Math.floor(it.qty/2));
+  const next = it.stage<4? STAGES[it.stage+1] : "Listo p/ embarque";
+  modal.innerHTML=`
+    <h3>Partir item (parcial)</h3>
+    <div class="msub">${it.code} · Talla ${it.size} · ${it.qty} piezas en ${STAGES[Math.min(it.stage,4)]}</div>
+    <div class="mrow">
+      <div class="fld"><label>Piezas que avanzan a ${next}</label>
+        <input type="number" id="mv" min="1" max="${it.qty-0}" value="${mv}"></div>
+    </div>
+    <div class="splitprev" id="sprev"></div>
+    <div class="mactions">
+      <button class="mbtn" data-m="cancel">Cancelar</button>
+      <button class="mbtn prim" data-m="ok">Partir</button>
+    </div>`;
+  scrim.classList.add("on");
+  const inp=modal.querySelector("#mv"), prev=modal.querySelector("#sprev");
+  function upd(){ let v=Math.max(1,Math.min(it.qty-1, +inp.value||1)); prev.innerHTML=
+    `Quedan <b>${it.qty-v}</b> pzas en <b>${STAGES[Math.min(it.stage,4)]}</b> · avanzan <b>${v}</b> pzas a <b>${next}</b>`; }
+  inp.addEventListener("input",upd); upd(); inp.focus();
+  modal.querySelector('[data-m="cancel"]').onclick=closeModal;
+  modal.querySelector('[data-m="ok"]').onclick=async ()=>{
+    let v=Math.max(1,Math.min(it.qty-1, +inp.value||1));
+    const na={...it.assignees}; na[it.stage+1]=null;
+    const nd={...it.dates}; nd[it.stage+1]={salida:todayStr, estimado:null, real:null};
+    const ins=await sb.from('asau_items').insert({order_id:it.order_id, product_id:it.product_id, size:it.size, qty:v, stage:it.stage+1, assignees:na, dates:nd, is_split:true}).select();
+    if(ins.error){ toast('No se pudo partir: '+ins.error.message,true); return; }
+    const up=await sb.from('asau_items').update({qty:it.qty-v, is_split:true, updated_at:new Date().toISOString()}).eq('id',it.id);
+    if(up.error){ toast('No se pudo actualizar: '+up.error.message,true); }
+    closeModal(); await loadAll(); refresh(); toast("Item partido");
+  };
+}
+
+// ===== Relleno en lote =====
+function renderBulkBar(){
+  const bar=document.getElementById("bulkbar"); if(!bar) return;
+  const n=SELIDS.size;
+  if(n===0){ bar.hidden=true; bar.innerHTML=""; return; }
+  bar.hidden=false;
+  bar.innerHTML=`<span class="bulkn">${n} seleccionado${n!==1?"s":""}</span>
+    <button class="mbtn prim" id="bkassign">Asignar responsable / fecha</button>
+    <button class="mbtn" id="bkadv">Avanzar a siguiente etapa</button>
+    <button class="mbtn" id="bkclear">Limpiar</button>`;
+  document.getElementById("bkassign").onclick=openBulkAssign;
+  document.getElementById("bkadv").onclick=openBulkAdvance;
+  document.getElementById("bkclear").onclick=()=>{ SELIDS.clear(); renderTable(); };
+}
+async function bulkApply(its, patchFn){
+  toast("Guardando "+its.length+"…");
+  let ok=0, fail=0;
+  for(let i=0;i<its.length;i+=20){
+    const chunk=its.slice(i,i+20);
+    await Promise.all(chunk.map(it=>{ const patch=patchFn(it); patch.updated_at=new Date().toISOString();
+      return sb.from("asau_items").update(patch).eq("id",it.id).then(r=>{ if(r.error) fail++; else ok++; }); }));
+  }
+  closeModal(); SELIDS.clear(); await loadAll(); refresh();
+  toast(fail? (ok+" guardados, "+fail+" con error") : (ok+" items actualizados"), fail>0);
+}
+function openBulkAssign(){
+  const its=[...SELIDS].map(id=>ITEMS.find(x=>x.id===id)).filter(x=>x&&x.stage<5);
+  if(!its.length){ toast("No hay items en proceso seleccionados",true); return; }
+  const stages=[...new Set(its.map(x=>x.stage))]; const mixed=stages.length>1; const stg=stages[0];
+  const est=new Date(TODAY); est.setDate(est.getDate()+LEAD[stg]);
+  modal.innerHTML=`
+    <h3>Asignar a ${its.length} items</h3>
+    <div class="msub">${mixed?'<b style="color:var(--warn-ink)">Ojo:</b> hay items en distintas etapas; se aplica al servicio actual de cada uno. Filtra por Etapa para un lote uniforme.':'Servicio actual: <b>'+STAGES[stg]+'</b>'}</div>
+    <label for="bresp">Responsable${mixed?'':' ('+STAGES[stg]+')'}</label>
+    <select id="bresp"><option value="">— no cambiar</option>${rosterFor(stg).map(p=>`<option>${p}</option>`).join("")}</select>
+    <div class="mrow" style="margin-top:12px">
+      <div class="fld"><label>${isOut(stg)?'Salida':'Inicio'}</label><input type="date" id="bsal" value="${isoDay(TODAY)}"></div>
+      <div class="fld"><label>${isOut(stg)?'Retorno est.':'Fin est.'}</label><input type="date" id="best" value="${isoDay(est)}"></div>
+    </div>
+    <div class="mactions"><button class="mbtn" data-m="cancel">Cancelar</button><button class="mbtn prim" data-m="ok">Aplicar a ${its.length}</button></div>`;
+  scrim.classList.add("on");
+  modal.querySelector('[data-m="cancel"]').onclick=closeModal;
+  modal.querySelector('[data-m="ok"]').onclick=async ()=>{
+    const resp=modal.querySelector("#bresp").value, sv=modal.querySelector("#bsal").value, ev=modal.querySelector("#best").value;
+    await bulkApply(its,(it)=>{ const st=it.stage; const na={...it.assignees}, nd={...it.dates};
+      if(resp) na[st]=resp;
+      nd[st]={ salida: sv||todayStr, estimado: ev||null, real:(nd[st]&&nd[st].real)||null };
+      return {assignees:na, dates:nd}; });
+  };
+}
+function openBulkAdvance(){
+  const its=[...SELIDS].map(id=>ITEMS.find(x=>x.id===id)).filter(x=>x&&x.stage<5);
+  if(!its.length){ toast("No hay items en proceso seleccionados",true); return; }
+  const nss=[...new Set(its.map(x=>Math.min(x.stage+1,5)))]; const mixed=nss.length>1; const ns=nss[0];
+  const roster= ns<=4? rosterFor(ns):[];
+  const est=new Date(TODAY); if(ns<=4) est.setDate(est.getDate()+LEAD[ns]);
+  modal.innerHTML=`
+    <h3>Avanzar ${its.length} items</h3>
+    <div class="msub">${mixed?'<b style="color:var(--warn-ink)">Ojo:</b> están en distintas etapas; cada uno avanza a la suya (se registra su retorno/fin de hoy). Filtra por Etapa para un lote uniforme.':'Avanzan a <b>'+(ns>4?'Listo p/ embarque':STAGES[ns])+'</b> · se registra el retorno/fin de hoy.'}</div>
+    ${(ns<=4)?`<label for="bresp">Responsable${mixed?'':' ('+STAGES[ns]+')'}</label>
+      <select id="bresp"><option value="">— dejar sin asignar</option>${roster.map(p=>`<option>${p}</option>`).join("")}</select>
+      <div class="mrow" style="margin-top:12px">
+        <div class="fld"><label>${isOut(ns)?'Salida':'Inicio'}</label><input type="date" id="bsal" value="${isoDay(TODAY)}"></div>
+        <div class="fld"><label>${isOut(ns)?'Retorno est.':'Fin est.'}</label><input type="date" id="best" value="${isoDay(est)}"></div>
+      </div>`:'<div class="splitprev">Quedan listos para embarque.</div>'}
+    <div class="mactions"><button class="mbtn" data-m="cancel">Cancelar</button><button class="mbtn prim" data-m="ok">Avanzar ${its.length}</button></div>`;
+  scrim.classList.add("on");
+  modal.querySelector('[data-m="cancel"]').onclick=closeModal;
+  modal.querySelector('[data-m="ok"]').onclick=async ()=>{
+    const respEl=modal.querySelector("#bresp"), salEl=modal.querySelector("#bsal"), estEl=modal.querySelector("#best");
+    const resp=respEl?respEl.value:"", sv=salEl?salEl.value:"", ev=estEl?estEl.value:"";
+    await bulkApply(its,(it)=>{ const st=it.stage, nn=Math.min(st+1,5); const na={...it.assignees}, nd={...it.dates};
+      nd[st]={ ...(nd[st]||{salida:null,estimado:null}), real: todayStr };
+      if(nn<=4){ if(resp) na[nn]=resp; nd[nn]={ salida: sv||todayStr, estimado: ev||null, real:null }; }
+      return {stage:nn, assignees:na, dates:nd}; });
+  };
+}
+
+// ===== Proveedores (gestión) =====
+function openProviders(){
+  const svcTags=(p)=>(p.services||[]).slice().sort().map(s=>`<span class="svctag s${s}">${STAGES[s]}</span>`).join("");
+  const body=()=>PROVIDERS.map(p=>`
+    <li>
+      <div class="binfo"><div class="bitem">${p.name}</div><div class="svcs">${svcTags(p)||'<span class="muted">sin servicio</span>'}</div></div>
+      <button class="abtn danger" data-del="${p.id}" title="Quitar proveedor">✕</button>
+    </li>`).join("");
+  modal.innerHTML=`
+    <h3>Proveedores de servicio</h3>
+    <div class="msub">Tu lista alimenta los desplegables de responsable en cada servicio. Se guardan en Supabase.</div>
+    <ul class="blklist provlist">${body()}</ul>
+    <div class="provadd">
+      <input type="text" id="pname" placeholder="Nombre del proveedor / persona">
+      <div class="svcpick">${STAGES.map((s,i)=>`<label class="svcopt"><input type="checkbox" value="${i}"> ${s}</label>`).join("")}</div>
+      <button class="mbtn prim" id="paddbtn">Agregar proveedor</button>
+    </div>
+    <div class="mactions"><button class="mbtn" data-m="cancel">Cerrar</button></div>`;
+  scrim.classList.add("on");
+  const relist=()=>{ modal.querySelector(".provlist").innerHTML=body(); wire(); };
+  function wire(){ modal.querySelectorAll("[data-del]").forEach(b=>b.onclick=async ()=>{
+    const {error}=await sb.from('asau_providers').delete().eq('id',b.dataset.del);
+    if(error){ toast('No se pudo quitar: '+error.message,true); return; }
+    await reloadProviders(); relist();
+  }); }
+  wire();
+  modal.querySelector("#pname").focus();
+  modal.querySelector("#paddbtn").onclick=async ()=>{
+    const name=modal.querySelector("#pname").value.trim(); if(!name) return;
+    const services=[...modal.querySelectorAll(".svcpick input:checked")].map(c=>+c.value);
+    const ins=await sb.from('asau_providers').insert({name, services}).select();
+    if(ins.error){ toast('No se pudo agregar: '+ins.error.message,true); return; }
+    await reloadProviders(); relist();
+    modal.querySelector("#pname").value=""; modal.querySelector("#pname").focus();
+  };
+  modal.querySelector('[data-m="cancel"]').onclick=()=>{ closeModal(); refresh(); };
+}
+
+// ===== eventos de orden / filtros =====
+function bindOrderEvents(){
+  document.querySelectorAll("[data-toggle]").forEach(h=>{
+    h.addEventListener("click",()=>{ SEL = SEL===h.dataset.toggle? "" : h.dataset.toggle; renderOrders(); });
+    h.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); h.click(); } });
+  });
+  const bind=(id,key)=>{ const el=document.getElementById(id); if(el) el.addEventListener("change",e=>{F[key]=e.target.value; renderTable();}); };
+  bind("fstage","etapa"); bind("fcol","col"); bind("fgen","gen"); bind("ftela","tela"); bind("fprenda","prenda"); bind("fcolor","color"); bind("fest","est"); bind("fresp","resp");
+  const q=document.getElementById("fq"); if(q){ q.value=F.q; q.addEventListener("input",e=>{F.q=e.target.value; renderTable();}); }
+  const pv=document.getElementById("provBtn"); if(pv) pv.addEventListener("click", openProviders);
+  // restaurar valores de filtros tras re-render
+  ["fstage","fcol","fgen","ftela","fprenda","fcolor","fest","fresp"].forEach((id,i)=>{ const el=document.getElementById(id); if(el) el.value=[F.etapa,F.col,F.gen,F.tela,F.prenda,F.color,F.est,F.resp][i]; });
+}
+
+// ===== tema =====
+const themeBtn=document.getElementById("themeBtn");
+function iconFor(){
+  const dark = document.documentElement.getAttribute("data-theme")==="dark" ||
+    (!document.documentElement.getAttribute("data-theme") && matchMedia("(prefers-color-scheme:dark)").matches);
+  document.getElementById("themeIcon").innerHTML = dark
+    ? '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"></path>'
+    : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"></path>';
+}
+themeBtn.addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const dark = cur==="dark" || (!cur && matchMedia("(prefers-color-scheme:dark)").matches);
+  document.documentElement.setAttribute("data-theme", dark?"light":"dark");
+  iconFor();
+});
+matchMedia("(prefers-color-scheme:dark)").addEventListener("change",iconFor);
+
+// init
+iconFor();
+const ordersEl=document.getElementById('orders');
+ordersEl.innerHTML='<div class="order2note">Cargando datos de Supabase…</div>';
+loadAll().then(()=>{ renderKPIs(); renderOrders(); })
+  .catch(e=>{ ordersEl.innerHTML='<div class="order2note">No se pudo conectar con la base de datos: '+((e&&e.message)||e)+'</div>'; });
+</script>
